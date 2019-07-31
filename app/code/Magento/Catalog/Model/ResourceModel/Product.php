@@ -94,6 +94,11 @@ class Product extends AbstractResource
     private $tableMaintainer;
 
     /**
+     * @var array
+     */
+    private $skuIdsItems;
+
+    /**
      * @param \Magento\Eav\Model\Entity\Context $context
      * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Magento\Catalog\Model\Factory $modelFactory
@@ -539,6 +544,19 @@ class Product extends AbstractResource
      */
     public function getProductsIdsBySkus(array $productSkuList)
     {
+        $cachedIds = [];
+        $productSkuListCopy = $productSkuList;
+        foreach ($productSkuListCopy as $key => $sku) {
+            if (isset($this->skuIdsItems[$sku])) {
+                $cachedIds[$sku] = $this->skuIdsItems[$sku];
+                unset($productSkuListCopy[$key]);
+            }
+        }
+
+        if (empty($productSkuListCopy)) {
+            return $cachedIds;
+        }
+
         $select = $this->getConnection()->select()->from(
             $this->getTable('catalog_product_entity'),
             ['sku', 'entity_id']
@@ -550,7 +568,9 @@ class Product extends AbstractResource
         $result = [];
         foreach ($this->getConnection()->fetchAll($select) as $row) {
             $result[$this->getResultKey($row['sku'], $productSkuList)] = $row['entity_id'];
+            $this->skuIdsItems['sku'] = $row['entity_id'];
         }
+
         return $result;
     }
 
