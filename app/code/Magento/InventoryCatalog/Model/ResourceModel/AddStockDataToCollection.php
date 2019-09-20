@@ -56,7 +56,7 @@ class AddStockDataToCollection
                 ->join(
                     ['stock_status_index' => $resource->getTable('cataloginventory_stock_status')],
                     sprintf('%s.entity_id = stock_status_index.product_id', Collection::MAIN_TABLE_ALIAS),
-                    [IndexStructure::IS_SALABLE => $isSalableColumnName]
+                    [$this->isSalableFieldExpression()]
                 );
         } else {
             $stockIndexTableName = $this->stockIndexTableNameResolver->execute($stockId);
@@ -66,7 +66,7 @@ class AddStockDataToCollection
                 sprintf('product.entity_id = %s.entity_id', Collection::MAIN_TABLE_ALIAS),
                 []
             );
-            $isSalableColumnName = IndexStructure::IS_SALABLE;
+            $isSalableColumnName = $this->isSalableFieldExpression(true);
             $collection->getSelect()
                 ->join(
                     ['stock_status_index' => $stockIndexTableName],
@@ -75,9 +75,28 @@ class AddStockDataToCollection
                 );
         }
 
+        $collection->getSelect()
+            ->joinLeft(
+                ['stock_reservations' => 'inventory_reservation'],
+                'e.sku = stock_reservations.sku AND stock_reservations.stock_id = ' . $stockId,
+                ['SUM(stock_reservations.quantity) AS stock_reservations_quantity']
+            );
+
+
         if ($isFilterInStock) {
             $collection->getSelect()
                 ->where('stock_status_index.' . $isSalableColumnName . ' = ?', 1);
         }
+    }
+
+    private function isSalableFieldExpression(bool $msi = false)
+    {
+        if ($msi) {
+            $quantityColumn = 'quantity';
+        } else {
+            $quantityColumn = 'qty';
+        }
+        $string = "IF ((stock_status_index.{$quantityColumn} + SUM(stock_reservations.quantity)) <= 0, 0, 1) AS is_salable";
+        return $string;
     }
 }
