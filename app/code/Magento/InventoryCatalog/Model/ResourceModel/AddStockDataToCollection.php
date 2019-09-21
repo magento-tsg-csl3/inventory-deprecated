@@ -85,7 +85,7 @@ class AddStockDataToCollection
 
         if ($isFilterInStock) {
             $collection->getSelect()
-                ->where('stock_status_index.' . $isSalableColumnName . ' = ?', 1);
+                ->where('stock_status_index.is_salable = ?', 1);
         }
     }
 
