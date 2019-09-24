@@ -303,6 +303,11 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
     private $urlFinder;
 
     /**
+     * @var \Magento\CatalogInventory\Helper\Stock
+     */
+    private $stockHelper;
+
+    /**
      * Collection constructor
      *
      * @param \Magento\Framework\Data\Collection\EntityFactory $entityFactory
@@ -358,7 +363,8 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
         MetadataPool $metadataPool = null,
         TableMaintainer $tableMaintainer = null,
         PriceTableResolver $priceTableResolver = null,
-        DimensionFactory $dimensionFactory = null
+        DimensionFactory $dimensionFactory = null,
+        \Magento\CatalogInventory\Helper\Stock $stockHelper = null
     ) {
         $this->moduleManager = $moduleManager;
         $this->_catalogProductFlatState = $catalogProductFlatState;
@@ -375,6 +381,7 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
         );
         $this->_productLimitationFilters = $productLimitationFactory->create();
         $this->metadataPool = $metadataPool ?: ObjectManager::getInstance()->get(MetadataPool::class);
+        $this->stockHelper = $metadataPool ?: ObjectManager::getInstance()->get(\Magento\CatalogInventory\Helper\Stock::class);
         parent::__construct(
             $entityFactory,
             $logger,
@@ -708,6 +715,7 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
 
         $this->_prepareUrlDataObject();
         $this->prepareStoreId();
+        $this->prepareStockStatus();
 
         if (count($this)) {
             $this->_eventManager->dispatch('catalog_product_collection_load_after', ['collection' => $this]);
@@ -731,6 +739,15 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
         }
 
         return $this;
+    }
+
+    private function prepareStockStatus()
+    {
+        foreach ($this->_items as $product) {
+            if ($product instanceof \Magento\Catalog\Model\Product) {
+                $this->stockHelper->assignStatusToProduct($product);
+            }
+        }
     }
 
     /**
