@@ -46,7 +46,7 @@ class ConfigurablePlugin
      * @param Select $result
      * @return Select
      */
-    public function afterJoinStockItemsTable(Configurable $subject, Select $result): Select
+    public function afterGetIsInStockItems(Configurable $subject, Select $result): Select
     {
         $result->join(
             ['isi' => $this->resourceConnection->getTableName('inventory_source_item')],
